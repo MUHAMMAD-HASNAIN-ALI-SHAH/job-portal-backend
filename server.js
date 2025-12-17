@@ -20,6 +20,7 @@ app.use(
 // Routes
 app.use("/api/v1/auth", require("./routes/auth.route"));
 app.use("/api/v2/applicant", require("./routes/applicant.route"));
+app.use("/api/v3/recruiter", require("./routes/recruiter.route"));
 
 // Connect DB and start server
 const port = process.env.PORT || 8080;
