@@ -214,6 +214,9 @@ const getJobDetails = async (req, res) => {
             return res.status(404).json({ message: 'Job not found' });
         }
 
+        job.seenCount += 1;
+        await job.save();
+
         // get the applicant details if the user is an applicant
         let applied = false;
         if (userId) {
