@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema(
   {
-    company: {
+    companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
       required: true,
@@ -76,6 +76,6 @@ const jobSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Job = mongoose.model("job", jobSchema);
+const Job = mongoose.model("Job", jobSchema);
 
 module.exports = Job;

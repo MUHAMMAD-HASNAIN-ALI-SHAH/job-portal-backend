@@ -3,6 +3,7 @@ const Company = require("../models/company.model");
 const Applicant = require("../models/applicant.model");
 const Application = require("../models/application.model");
 
+// company route
 const createJob = async (req, res) => {
     try {
         const companyUserId = req.user._id;
@@ -51,7 +52,7 @@ const createJob = async (req, res) => {
             requirements,
             status,
             applicationDeadline,
-            company: companyDetails._id
+            companyId: companyDetails._id
         });
         await newJob.save();
 
@@ -61,6 +62,7 @@ const createJob = async (req, res) => {
     }
 };
 
+// company route
 const getJobs = async (req, res) => {
     try {
         const companyUserId = req.user._id;
@@ -71,13 +73,15 @@ const getJobs = async (req, res) => {
             return res.status(404).json({ message: 'Company details not found' });
         }
 
-        const jobs = await Job.find({ company: companyDetails._id });
+        const jobs = await Job.find({ companyId: companyDetails._id });
+
         res.status(200).json(jobs);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching jobs', error });
     }
 };
 
+// company route
 const editJob = async (req, res) => {
     try {
         const companyUserId = req.user._id;
@@ -120,7 +124,7 @@ const editJob = async (req, res) => {
         }
 
         // Check if the user is the owner of the job
-        if (job.company.toString() !== companyDetails._id.toString()) {
+        if (job.companyId.toString() !== companyDetails._id.toString()) {
             return res.status(403).json({ message: 'You are not authorized to edit this job' });
         }
 
@@ -144,6 +148,7 @@ const editJob = async (req, res) => {
     }
 };
 
+// company route
 const deleteJob = async (req, res) => {
     try {
         const companyUserId = req.user._id;
@@ -162,7 +167,7 @@ const deleteJob = async (req, res) => {
         }
 
         // Check if the user is the owner of the job
-        if (job.company.toString() !== companyDetails._id.toString()) {
+        if (job.companyId.toString() !== companyDetails._id.toString()) {
             return res.status(403).json({ message: 'You are not authorized to delete this job' });
         }
 
@@ -194,7 +199,7 @@ const getAllJobs = async (req, res) => {
             query.location = { $regex: location, $options: "i" };
         }
 
-        const jobs = await Job.find(query).populate('company', 'name location logo');
+        const jobs = await Job.find(query).populate('companyId', 'name location logo');
 
         res.status(200).json(jobs);
     } catch (error) {
@@ -209,12 +214,12 @@ const getJobDetails = async (req, res) => {
         const jobId = req.params.id;
         const userId = req.user;
 
-        const job = await Job.findById(jobId).populate('company', 'name location logo');
+        const job = await Job.findById(jobId).populate('companyId', 'name location logo');
         if (!job) {
             return res.status(404).json({ message: 'Job not found' });
         }
 
-        job.seenCount += 1;
+        job.views += 1;
         await job.save();
 
         // get the applicant details if the user is an applicant

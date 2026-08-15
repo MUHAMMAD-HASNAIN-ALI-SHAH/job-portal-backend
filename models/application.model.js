@@ -34,6 +34,27 @@ const applicationSchema = new mongoose.Schema(
             type: Number,
             required: true,
         },
+        interviewDate: {
+            type: Date,
+            default: null,
+        },
+        interviewTime: {
+            type: String,
+            default: null,
+        },
+        interviewMode: {
+            type: String,
+            enum: ["in-person", "online", "phone"],
+            default: null,
+        },
+        zoomLink: {
+            type: String,
+            default: null,
+        },
+        interviewLocation: {
+            type: String,
+            default: null,
+        },
     },
     { timestamps: true }
 );
