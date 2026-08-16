@@ -41,7 +41,7 @@ const uploadResume = async (req, res) => {
 
         await newResume.save();
 
-        res.status(201).json();
+        res.status(201).json(newResume);
     } catch (error) {
         res.status(500).json({ message: 'Error uploading resume', error });
         console.error('Error uploading resume:', error);
@@ -88,7 +88,7 @@ const deleteResume = async (req, res) => {
         }
 
         // Check if the resume is being used in any application before deleting it from Cloudinary
-        const checkDeleteResumeFromCloudinary = await Application.findOne({ resume: resume.resumeUrl });
+        const checkDeleteResumeFromCloudinary = await Application.findOne({ resumeUrl: resume.resumeUrl });
         if (!checkDeleteResumeFromCloudinary) {
             await deleteResumeFromCloudinary(resume.resumeUrl);
         }

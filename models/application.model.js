@@ -17,7 +17,11 @@ const applicationSchema = new mongoose.Schema(
             enum: ["applied", "shortlisted", "rejected", "hired"],
             default: "applied",
         },
-        resume: {
+        resumeUrl: {
+            type: String,
+            required: true,
+        },
+        resumeFileName: {
             type: String,
             required: true,
         },

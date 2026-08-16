@@ -3,14 +3,15 @@ const Application = require("../models/application.model");
 const Job = require("../models/job.model");
 const Resume = require("../models/resumes.model");
 const Company = require("../models/company.model");
+const { uploadResumeToCloudinary } = require("../config/resume");
 
 const applyJob = async (req, res) => {
     try {
         const userId = req.user._id;
-        const { jobId, coverLetter, resume: resumeBase64, fileName, expectedSalary, noticePeriod } = req.body;
+        const { jobId, coverLetter, resumeUrl, fileName, expectedSalary, noticePeriod } = req.body;
 
         // Validation
-        if (!jobId || !coverLetter || expectedSalary === undefined || noticePeriod === undefined) {
+        if (!jobId || !coverLetter || !resumeUrl || !fileName || expectedSalary === undefined || noticePeriod === undefined) {
             return res.status(400).json({ message: "All fields are required." });
         }
         if (coverLetter.length < 10) {
@@ -41,38 +42,34 @@ const applyJob = async (req, res) => {
             return res.status(400).json({ message: "You have already applied for this job." });
         }
 
-        // Resolve the resume to attach to this application
-        let getResume = await Resume.findOne({ applicantId: applicant._id });
-
-        if (!getResume && !resumeBase64) {
-            return res.status(404).json({ message: "Resume not found. Please upload your resume before applying." });
-        }
-
-        if (resumeBase64) {
-            if (getResume) {
-                getResume = await Resume.findByIdAndUpdate(
-                    getResume._id,
-                    { fileName, file: resumeBase64 },
-                    { new: true }
-                );
-            } else {
-                getResume = await Resume.create({
-                    applicantId: applicant._id,
-                    fileName,
-                    file: resumeBase64,
-                });
-            }
-        }
-
-        // Create a new application
         const application = new Application({
             applicantId: applicant._id,
             jobId,
             coverLetter,
-            resume: getResume.resumeUrl,
+            resumeFileName: fileName,
             expectedSalary,
             noticePeriod,
         });
+
+        let getResume = await Resume.findOne({ applicantId: applicant._id });
+
+        if (!getResume && resumeUrl.startsWith("data:")) {
+            const uploadedResumeUrl = await uploadResumeToCloudinary(resumeUrl);
+            const newResume = await Resume.create({
+                applicantId: applicant._id,
+                fileName,
+                resumeUrl: uploadedResumeUrl,
+            });
+            await newResume.save();
+            application.resumeUrl = uploadedResumeUrl;
+        } else if (getResume && getResume.resumeUrl === resumeUrl) {
+            application.resumeUrl = getResume.resumeUrl;
+        } else if (getResume && getResume.resumeUrl !== resumeUrl) {
+            const uploadedResumeUrl = await uploadResumeToCloudinary(resumeUrl);
+            application.resumeUrl = uploadedResumeUrl;
+        } else if (!getResume && !resumeUrl.startsWith("data:")) {
+            return res.status(400).json({ message: "Invalid resume URL." });
+        }
 
         job.applicantsCount += 1;
         await job.save();
