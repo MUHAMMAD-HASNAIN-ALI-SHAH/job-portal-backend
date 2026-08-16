@@ -4,6 +4,7 @@ const Job = require("../models/job.model");
 const Resume = require("../models/resumes.model");
 const Company = require("../models/company.model");
 const { uploadResumeToCloudinary } = require("../config/resume");
+const { deleteResumeFromCloudinary } = require("../config/resume");
 
 const applyJob = async (req, res) => {
     try {
@@ -153,6 +154,29 @@ const updateStatus = async (req, res) => {
             }
         }
 
+        if (status === "hired" || status === "rejected") {
+            if (application.resumeUrl) {
+                // Is this exact resume URL used by any OTHER application?
+                const usedByAnotherApplication = await Application.exists({
+                    _id: { $ne: application._id },
+                    resumeUrl: application.resumeUrl,
+                });
+
+                // Is this the applicant's saved profile resume (reusable for future applications)?
+                const isSavedProfileResume = await Resume.exists({
+                    resumeUrl: application.resumeUrl,
+                });
+
+                const shouldDelete = !usedByAnotherApplication && !isSavedProfileResume;
+
+                if (shouldDelete) {
+                    await deleteResumeFromCloudinary(application.resumeUrl);
+                }
+            }
+            application.resumeUrl = null;
+            application.fileName = null;
+        }
+
         // Update the application status
         application.status = status;
         application.interviewMode = interviewMode || null;
@@ -190,9 +214,37 @@ const getUserApplications = async (req, res) => {
     }
 };
 
+const getCompanyShortlistedApplicationsCount = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Check if the user is a company
+        const company = await Company.findOne({ user: userId });
+        if (!company) {
+            return res.status(403).json({ message: "Only companies can view shortlisted applications count." });
+        }
+
+        // Fetch all jobs posted by this company
+        const jobs = await Job.find({ companyId: company._id });
+        const jobIds = jobs.map(job => job._id);
+
+        // Fetch all shortlisted applications for these jobs
+        const shortlistedApplications = await Application.find({
+            jobId: { $in: jobIds },
+            status: "shortlisted"
+        });
+
+        res.status(200).json({ count: shortlistedApplications.length });
+    } catch (error) {
+        console.error("Error fetching company shortlisted applications count:", error);
+        res.status(500).json({ message: "Server error." });
+    }
+};
+
 module.exports = {
     applyJob,
     getCompanyApplications,
     updateStatus,
-    getUserApplications
+    getUserApplications,
+    getCompanyShortlistedApplicationsCount
 };

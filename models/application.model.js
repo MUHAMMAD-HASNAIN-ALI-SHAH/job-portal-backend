@@ -19,11 +19,9 @@ const applicationSchema = new mongoose.Schema(
         },
         resumeUrl: {
             type: String,
-            required: true,
         },
         resumeFileName: {
             type: String,
-            required: true,
         },
         coverLetter: {
             type: String,
