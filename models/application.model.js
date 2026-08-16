@@ -17,9 +17,8 @@ const applicationSchema = new mongoose.Schema(
             enum: ["applied", "shortlisted", "rejected", "hired"],
             default: "applied",
         },
-        resumeId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Resume",
+        resume: {
+            type: String,
             required: true,
         },
         coverLetter: {

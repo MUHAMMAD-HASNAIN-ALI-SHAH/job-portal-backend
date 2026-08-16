@@ -69,7 +69,7 @@ const applyJob = async (req, res) => {
             applicantId: applicant._id,
             jobId,
             coverLetter,
-            resumeId: getResume._id,
+            resume: getResume.resumeUrl,
             expectedSalary,
             noticePeriod,
         });
@@ -101,8 +101,7 @@ const getCompanyApplications = async (req, res) => {
 
         const applications = await Application.find({ jobId: { $in: jobIds } })
             .populate('applicantId', 'fullName')
-            .populate('jobId', 'title')
-            .populate('resumeId', 'fileName resumeUrl');
+            .populate('jobId', 'title');
 
         res.status(200).json(applications);
     } catch (error) {
@@ -186,7 +185,6 @@ const getUserApplications = async (req, res) => {
         // Fetch all applications for this applicant
         const applications = await Application.find({ applicantId: applicant._id })
             .populate('jobId', 'title description location salary jobType experienceLevel skills requirements status applicationDeadline')
-            .populate('resumeId', 'fileName resumeUrl');
 
         res.status(200).json(applications);
     } catch (error) {

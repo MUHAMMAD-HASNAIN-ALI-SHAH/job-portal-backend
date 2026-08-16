@@ -48,7 +48,7 @@ const updateCompanyDetails = async (req, res) => {
         if (logo && typeof logo === 'string' && logo.startsWith('data:image')) {
             // Upload new logo to Cloudinary
             const uploadResult = await cloudinary.uploader.upload(logo, {
-                folder: 'company_logos',
+                folder: 'jobstack/company_logos',
                 public_id: `${companyUserId}_logo`,
                 overwrite: true,
             });
