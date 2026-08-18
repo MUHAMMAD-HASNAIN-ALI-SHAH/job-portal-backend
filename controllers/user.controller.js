@@ -58,7 +58,6 @@ const registration = async (req, res) => {
     // Remove unverified user and profile
     if (existingUser && !existingUser.emailVerified) {
       await User.deleteOne({ _id: existingUser._id });
-      await Code.deleteMany({ userId: existingUser._id });
       await Recruiter.deleteOne({ userId: existingUser._id });
     }
 
@@ -80,7 +79,7 @@ const registration = async (req, res) => {
     }
 
     if (role === "applicant") {
-      await Applicant.create({ user: newUser._id });
+      await Applicant.create({ userId: newUser._id });
     }
 
     // send verification link

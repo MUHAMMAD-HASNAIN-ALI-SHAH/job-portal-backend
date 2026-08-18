@@ -6,6 +6,13 @@ const cookieParser = require("cookie-parser");
 
 const app = express();
 
+// // 3 sec delay on all requests
+// app.use((req, res, next) => {
+//   setTimeout(() => {
+//     next();
+//   }, 3000);
+// });
+
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
