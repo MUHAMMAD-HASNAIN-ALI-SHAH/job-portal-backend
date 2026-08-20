@@ -5,25 +5,13 @@ const Resume = require("../models/resumes.model");
 const Company = require("../models/company.model");
 const { uploadResumeToCloudinary } = require("../config/resume");
 const { deleteResumeFromCloudinary } = require("../config/resume");
+const { extractTextFromPdfUrl } = require("../config/extractTextFromPdfUrl");
+const { getEmbedding, calculateATSMatch } = require("../config/gemini");
 
 const applyJob = async (req, res) => {
     try {
         const userId = req.user._id;
-        const { jobId, coverLetter, resumeUrl, fileName, expectedSalary, noticePeriod } = req.body;
-
-        // Validation
-        if (!jobId || !coverLetter || !resumeUrl || !fileName || expectedSalary === undefined || noticePeriod === undefined) {
-            return res.status(400).json({ message: "All fields are required." });
-        }
-        if (coverLetter.length < 10) {
-            return res.status(400).json({ message: "Cover letter must be at least 10 characters long." });
-        }
-        if (expectedSalary < 0) {
-            return res.status(400).json({ message: "Expected salary must be a positive number." });
-        }
-        if (noticePeriod < 0) {
-            return res.status(400).json({ message: "Notice period must be a positive number." });
-        }
+        const { jobId, coverLetter, resumeBase64, fileName, expectedSalary, noticePeriod } = req.body;
 
         // Check if the user is an applicant
         const applicant = await Applicant.findOne({ userId });
@@ -32,7 +20,7 @@ const applyJob = async (req, res) => {
         }
 
         // Check if job exists
-        const job = await Job.findById(jobId);
+        const job = await Job.findById(jobId).select("+embedding");
         if (!job) {
             return res.status(404).json({ message: "Job not found." });
         }
@@ -47,36 +35,59 @@ const applyJob = async (req, res) => {
             applicantId: applicant._id,
             jobId,
             coverLetter,
-            resumeFileName: fileName,
+            resumeId: null,
             expectedSalary,
             noticePeriod,
         });
 
-        let getResume = await Resume.findOne({ applicantId: applicant._id });
+        let resume;
+        if (resumeBase64 && fileName) {
+            // upload the resume to cloudinary and get the URL
+            const resumeUrl = await uploadResumeToCloudinary(resumeBase64);
 
-        if (!getResume && resumeUrl.startsWith("data:")) {
-            const uploadedResumeUrl = await uploadResumeToCloudinary(resumeUrl);
-            const newResume = await Resume.create({
-                applicantId: applicant._id,
+            // Extract text from the resume and get the embedding
+            const resumeText = await extractTextFromPdfUrl(resumeUrl);
+            const embedding = await getEmbedding(resumeText);
+
+            // Save the resume to the Resume collection
+            resume = new Resume({
+                resumeUrl,
                 fileName,
-                resumeUrl: uploadedResumeUrl,
+                embedding,
             });
-            await newResume.save();
-            application.resumeUrl = uploadedResumeUrl;
-        } else if (getResume && getResume.resumeUrl === resumeUrl) {
-            application.resumeUrl = getResume.resumeUrl;
-        } else if (getResume && getResume.resumeUrl !== resumeUrl) {
-            const uploadedResumeUrl = await uploadResumeToCloudinary(resumeUrl);
-            application.resumeUrl = uploadedResumeUrl;
-        } else if (!getResume && !resumeUrl.startsWith("data:")) {
-            return res.status(400).json({ message: "Invalid resume URL." });
+
+            await resume.save();
+
+            if (applicant.resumeId === null) {
+                // If the applicant doesn't have a saved resume, save this one as their profile resume
+                applicant.resumeId = resume._id;
+                await applicant.save();
+            }
+        } else {
+            // If no resume is provided, check if the applicant has a saved resume
+            const getResume = await Resume.findById(
+                applicant.resumeId
+            ).select("+embedding");
+            if (!getResume) {
+                return res.status(404).json({ message: "Resume not found." });
+            }
+
+            // Use the saved resume for the application
+            resume = getResume;
         }
+
+        // Associate the resume with the application
+        application.resumeId = resume._id;
+
+        // Calculate ATS match percentage
+        const atsMatchPercentage = await calculateATSMatch(resume.embedding, job.embedding);
+        application.atsMatchPercentage = atsMatchPercentage;
 
         job.applicantsCount += 1;
         await job.save();
         await application.save();
 
-        res.status(201).json({ message: "Application submitted successfully.", application });
+        res.status(201).json();
     } catch (error) {
         console.error("Error applying for job:", error);
         res.status(500).json({ message: "Server error." });
@@ -88,7 +99,7 @@ const getCompanyApplications = async (req, res) => {
         const userId = req.user._id;
 
         // Check if the user is a company
-        const company = await Company.findOne({ user: userId });
+        const company = await Company.findOne({ userId });
         if (!company) {
             return res.status(403).json({ message: "Only companies can view applications." });
         }
@@ -99,7 +110,8 @@ const getCompanyApplications = async (req, res) => {
 
         const applications = await Application.find({ jobId: { $in: jobIds } })
             .populate('applicantId', 'fullName')
-            .populate('jobId', 'title');
+            .populate('jobId', 'title')
+            .populate('resumeId', 'resumeUrl fileName');
 
         res.status(200).json(applications);
     } catch (error) {
@@ -114,13 +126,13 @@ const updateStatus = async (req, res) => {
         const { applicationId, status, interviewMode, interviewLocation, interviewDate, interviewTime, zoomLink } = req.body;
 
         // Check if the user is a company
-        const company = await Company.findOne({ user: userId });
+        const company = await Company.findOne({ userId });
         if (!company) {
             return res.status(403).json({ message: "Only companies can update application status." });
         }
 
         // Check if the application exists
-        const application = await Application.findById(applicationId).populate('jobId');
+        const application = await Application.findById(applicationId).populate('jobId').populate('resumeId');
         if (!application) {
             return res.status(404).json({ message: "Application not found." });
         }
@@ -155,25 +167,26 @@ const updateStatus = async (req, res) => {
         }
 
         if (status === "hired" || status === "rejected") {
-            if (application.resumeUrl) {
+            if (application.resumeId) {
                 // Is this exact resume URL used by any OTHER application?
                 const usedByAnotherApplication = await Application.exists({
                     _id: { $ne: application._id },
-                    resumeUrl: application.resumeUrl,
+                    resumeId: application.resumeId,
                 });
 
                 // Is this the applicant's saved profile resume (reusable for future applications)?
-                const isSavedProfileResume = await Resume.exists({
-                    resumeUrl: application.resumeUrl,
+                const isSavedProfileResume = await Applicant.exists({
+                    resumeId: application.resumeId,
                 });
 
                 const shouldDelete = !usedByAnotherApplication && !isSavedProfileResume;
 
                 if (shouldDelete) {
-                    await deleteResumeFromCloudinary(application.resumeUrl);
+                    await deleteResumeFromCloudinary(application.resumeId.resumeUrl);
+                    await Resume.findByIdAndDelete(application.resumeId._id);
                 }
             }
-            application.resumeUrl = null;
+            application.resumeId = null;
             application.fileName = null;
         }
 
@@ -219,7 +232,7 @@ const getCompanyShortlistedApplicationsCount = async (req, res) => {
         const userId = req.user._id;
 
         // Check if the user is a company
-        const company = await Company.findOne({ user: userId });
+        const company = await Company.findOne({ userId });
         if (!company) {
             return res.status(403).json({ message: "Only companies can view shortlisted applications count." });
         }

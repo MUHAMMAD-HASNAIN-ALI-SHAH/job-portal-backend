@@ -17,11 +17,9 @@ const applicationSchema = new mongoose.Schema(
             enum: ["applied", "shortlisted", "rejected", "hired"],
             default: "applied",
         },
-        resumeUrl: {
-            type: String,
-        },
-        resumeFileName: {
-            type: String,
+        resumeId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Resume",
         },
         coverLetter: {
             type: String,
@@ -54,6 +52,10 @@ const applicationSchema = new mongoose.Schema(
         },
         interviewLocation: {
             type: String,
+            default: null,
+        },
+        atsMatchPercentage: {
+            type: Number,
             default: null,
         },
     },

@@ -36,11 +36,13 @@ const jobSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+      required: true,
     },
     salary: {
       type: String,
       default: "",
       trim: true,
+      required: true,
     },
     employmentType: {
       type: String,
@@ -55,6 +57,7 @@ const jobSchema = new mongoose.Schema(
     applicationDeadline: {
       type: Date,
       default: null,
+      required: true,
     },
     postedAt: {
       type: Date,
@@ -68,8 +71,12 @@ const jobSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    embedding: {
+      type: [Number],
+      default: [],
+      select: false,
+    },
   },
-  { timestamps: true }
 );
 
 const Job = mongoose.model("Job", jobSchema);

@@ -2,14 +2,15 @@ const Job = require("../models/job.model");
 const Company = require("../models/company.model");
 const Applicant = require("../models/applicant.model");
 const Application = require("../models/application.model");
+const { getEmbedding } = require("../config/gemini");
 
 // company route
 const createJob = async (req, res) => {
     try {
-        const companyUserId = req.user._id;
+        const userId = req.user._id;
 
-        // Check if the user is a company
-        const companyDetails = await Company.findOne({ user: companyUserId });
+        // get company details
+        const companyDetails = await Company.findOne({ userId: userId });
         if (!companyDetails) {
             return res.status(404).json({ message: 'Company details not found' });
         }
@@ -17,28 +18,9 @@ const createJob = async (req, res) => {
         // Extract job details from request body
         const { title, description, location, salary, jobType, experienceLevel, skills, requirements, status, applicationDeadline } = req.body;
 
-        // validations
-        if (!title || title.length < 3 || title.length > 100) {
-            return res.status(400).json({ message: 'Job title must be between 3 and 100 characters' });
-        }
-        if (!description || description.length < 10 || description.length > 5000) {
-            return res.status(400).json({ message: 'Job description must be between 10 and 5000 characters' });
-        }
-        if (skills && !Array.isArray(skills)) {
-            return res.status(400).json({ message: 'Skills must be an array of strings' });
-        }
-        if (experienceLevel && !["Internship", "Entry", "Mid", "Senior", "Lead"].includes(experienceLevel)) {
-            return res.status(400).json({ message: 'Invalid experience level' });
-        }
-        if (jobType && !["Full-time", "Part-time", "Contract", "Freelance", "Temporary"].includes(jobType)) {
-            return res.status(400).json({ message: 'Invalid job type' });
-        }
-        if (requirements && !Array.isArray(requirements)) {
-            return res.status(400).json({ message: 'Requirements must be an array of strings' });
-        }
-        if (status && !["active", "draft", "closed"].includes(status)) {
-            return res.status(400).json({ message: 'Invalid job status' });
-        }
+        // extract text from job details and get embedding
+        const jobText = `${title} ${description} ${skills ? skills.join(' ') : ''} ${requirements ? requirements.join(' ') : ''}`;
+        const jobEmbedding = await getEmbedding(jobText);
 
         // Create a new job posting
         const newJob = new Job({
@@ -52,8 +34,10 @@ const createJob = async (req, res) => {
             requirements,
             status,
             applicationDeadline,
+            embedding: jobEmbedding,
             companyId: companyDetails._id
         });
+
         await newJob.save();
 
         res.status(201).json(newJob);
@@ -63,53 +47,18 @@ const createJob = async (req, res) => {
 };
 
 // company route
-const getJobs = async (req, res) => {
-    try {
-        const companyUserId = req.user._id;
-
-        // Check if the user is a company
-        const companyDetails = await Company.findOne({ user: companyUserId });
-        if (!companyDetails) {
-            return res.status(404).json({ message: 'Company details not found' });
-        }
-
-        const jobs = await Job.find({ companyId: companyDetails._id });
-
-        res.status(200).json(jobs);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching jobs', error });
-    }
-};
-
-// company route
 const editJob = async (req, res) => {
     try {
         const companyUserId = req.user._id;
         const jobId = req.params.id;
-        const { title, description, location, salary, jobType, experienceLevel, skills, requirements, status, applicationDeadline } = req.body;
 
-        // validations
-        if (!title || title.length < 3 || title.length > 100) {
-            return res.status(400).json({ message: 'Job title must be between 3 and 100 characters' });
+        // Check if the user is a company
+        const companyDetails = await Company.findOne({ userId: companyUserId });
+        if (!companyDetails) {
+            return res.status(404).json({ message: 'Company details not found' });
         }
-        if (!description || description.length < 10 || description.length > 5000) {
-            return res.status(400).json({ message: 'Job description must be between 10 and 5000 characters' });
-        }
-        if (skills && !Array.isArray(skills)) {
-            return res.status(400).json({ message: 'Skills must be an array of strings' });
-        }
-        if (experienceLevel && !["Internship", "Entry", "Mid", "Senior", "Lead"].includes(experienceLevel)) {
-            return res.status(400).json({ message: 'Invalid experience level' });
-        }
-        if (jobType && !["Full-time", "Part-time", "Contract", "Freelance", "Temporary"].includes(jobType)) {
-            return res.status(400).json({ message: 'Invalid job type' });
-        }
-        if (requirements && !Array.isArray(requirements)) {
-            return res.status(400).json({ message: 'Requirements must be an array of strings' });
-        }
-        if (status && !["active", "draft", "closed"].includes(status)) {
-            return res.status(400).json({ message: 'Invalid job status' });
-        }
+
+        const { title, description, location, salary, jobType, experienceLevel, skills, requirements, status, applicationDeadline } = req.body;
 
         // Find the job by ID
         const job = await Job.findById(jobId);
@@ -117,16 +66,13 @@ const editJob = async (req, res) => {
             return res.status(404).json({ message: 'Job not found' });
         }
 
-        // Check if the user is a company
-        const companyDetails = await Company.findOne({ user: companyUserId });
-        if (!companyDetails) {
-            return res.status(404).json({ message: 'Company details not found' });
-        }
-
         // Check if the user is the owner of the job
         if (job.companyId.toString() !== companyDetails._id.toString()) {
             return res.status(403).json({ message: 'You are not authorized to edit this job' });
         }
+
+        const jobText = `${title} ${description} ${skills ? skills.join(' ') : ''} ${requirements ? requirements.join(' ') : ''}`;
+        const jobEmbedding = await getEmbedding(jobText);
 
         // Update the job
         job.title = title || job.title;
@@ -139,12 +85,32 @@ const editJob = async (req, res) => {
         job.requirements = requirements || job.requirements;
         job.status = status || job.status;
         job.applicationDeadline = applicationDeadline || job.applicationDeadline;
+        job.embedding = jobEmbedding || job.embedding;
 
         await job.save();
 
         res.status(200).json(job);
     } catch (error) {
         res.status(500).json({ message: 'Error editing job', error });
+    }
+};
+
+// company route
+const getJobs = async (req, res) => {
+    try {
+        const companyUserId = req.user._id;
+
+        // Check if the user is a company
+        const companyDetails = await Company.findOne({ userId: companyUserId });
+        if (!companyDetails) {
+            return res.status(404).json({ message: 'Company details not found' });
+        }
+
+        const jobs = await Job.find({ companyId: companyDetails._id });
+
+        res.status(200).json(jobs);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching jobs', error });
     }
 };
 
@@ -161,7 +127,7 @@ const deleteJob = async (req, res) => {
         }
 
         // Check if the user is a company
-        const companyDetails = await Company.findOne({ user: companyUserId });
+        const companyDetails = await Company.findOne({ userId: companyUserId });
         if (!companyDetails) {
             return res.status(404).json({ message: 'Company details not found' });
         }

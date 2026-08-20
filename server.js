@@ -29,7 +29,6 @@ app.use("/api/v1/auth", require("./routes/auth.route"));
 app.use("/api/v2/company", require("./routes/company.route"));
 app.use("/api/v3/applicant", require("./routes/applicant.route"));
 app.use("/api/v4/job", require("./routes/job.route"));
-app.use("/api/v5/resume", require("./routes/resume.route"));
 app.use("/api/v6/application", require("./routes/application.route"));
 
 // Connect DB and start server

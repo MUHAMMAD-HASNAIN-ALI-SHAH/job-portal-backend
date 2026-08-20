@@ -8,7 +8,7 @@ const {
   registration,
   verify
 } = require("../controllers/user.controller");
-const protectedRoute = require("../middlewares/verify.route");
+const protectedRoute = require("../middlewares/user.route");
 
 router.route("/register").post(registration);
 router.route("/verify-email").post(verifyEmail);

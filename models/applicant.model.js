@@ -43,12 +43,10 @@ const applicantSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    savedJobs: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Job",
-      },
-    ],
+    resumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Resume",
+    }
   },
   { timestamps: true }
 );

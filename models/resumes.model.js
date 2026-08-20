@@ -2,12 +2,6 @@ const mongoose = require("mongoose");
 
 const resumeSchema = new mongoose.Schema(
   {
-    applicantId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Applicant",
-      required: true,
-      unique: true,
-    },
     resumeUrl: {
       type: String,
       required: true,
@@ -18,9 +12,10 @@ const resumeSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    parsedResumeText: {
-      type: Object,
-      default: {},
+    embedding: {
+      type: [Number],
+      default: [],
+      select: false,
     },
     uploadedAt: {
       type: Date,

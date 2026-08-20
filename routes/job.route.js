@@ -1,14 +1,17 @@
 const express = require("express");
 const router = express.Router();
 require("dotenv").config();
-const protectedRoute = require("../middlewares/verify.route");
+const protectedRoute = require("../middlewares/user.route");
 const { createJob, getJobs, editJob, deleteJob, getAllJobs, getJobDetails } = require("../controllers/job.controller");
+const { addJobValidator, editJobValidator } = require("../validators/job.validator");
 
-router.route("/").post(protectedRoute, createJob);
+// company routes
+router.route("/").post(protectedRoute, addJobValidator, createJob);
 router.route("/").get(protectedRoute, getJobs);
-router.route("/:id").put(protectedRoute, editJob);
+router.route("/:id").put(protectedRoute, editJobValidator, editJob);
 router.route("/:id").delete(protectedRoute, deleteJob);
 
+// public routes
 router.route("/all").get(getAllJobs);
 router.route("/:id").get(protectedRoute, getJobDetails);
 

@@ -1,4 +1,5 @@
 const cloudinary = require('../config/cloudinary');
+const { extractResumeData } = require('./gemini');
 
 const uploadResumeToCloudinary = async (pdfBase64) => {
     try {
