@@ -165,7 +165,7 @@ const getAllJobs = async (req, res) => {
             query.location = { $regex: location, $options: "i" };
         }
 
-        const jobs = await Job.find(query).populate('companyId', 'name location logo');
+        let jobs = await Job.find(query).populate('companyId', 'name location logo');
 
         // return only active jobs
         jobs = jobs.filter(job => job.status === 'active');
