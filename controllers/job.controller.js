@@ -167,6 +167,9 @@ const getAllJobs = async (req, res) => {
 
         const jobs = await Job.find(query).populate('companyId', 'name location logo');
 
+        // return only active jobs
+        jobs = jobs.filter(job => job.status === 'active');
+
         res.status(200).json(jobs);
     } catch (error) {
         console.error('Error fetching all jobs:', error);
@@ -201,9 +204,6 @@ const getJobDetails = async (req, res) => {
                 }
             }
         }
-
-        // return only active jobs
-        job = job.filter(job => job.status === 'active');
 
         res.status(200).json({ job, applied });
     } catch (error) {
