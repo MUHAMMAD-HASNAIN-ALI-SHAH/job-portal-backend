@@ -13,6 +13,6 @@ router.route("/:id").delete(protectedRoute, deleteJob);
 
 // public routes
 router.route("/all").get(getAllJobs);
-router.route("/:id").get(protectedRoute, getJobDetails);
+router.route("/:id").get(getJobDetails);
 
 module.exports = router;
