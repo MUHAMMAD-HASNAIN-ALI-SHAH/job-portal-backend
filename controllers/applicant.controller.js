@@ -3,7 +3,7 @@ const Resume = require("../models/resumes.model");
 const Application = require("../models/application.model");
 const { uploadResumeToCloudinary, deleteResumeFromCloudinary } = require("../config/resume");
 const { getEmbedding } = require("../config/gemini");
-const extractTextFromPdfUrl = require("../config/extractTextFromPdfUrl");
+const { extractTextFromPdfUrl } = require("../config/extractTextFromPdfUrl");
 
 const determineProfileCompleteness = (applicant) => {
   let completeness = 0;

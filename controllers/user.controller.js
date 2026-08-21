@@ -58,7 +58,8 @@ const registration = async (req, res) => {
     // Remove unverified user and profile
     if (existingUser && !existingUser.emailVerified) {
       await User.deleteOne({ _id: existingUser._id });
-      await Recruiter.deleteOne({ userId: existingUser._id });
+      await Company.deleteOne({ userId: existingUser._id });
+      await Applicant.deleteOne({ userId: existingUser._id });
     }
 
     // if user already exists
@@ -75,7 +76,7 @@ const registration = async (req, res) => {
     });
 
     if (role === "company") {
-      await Company.create({ user: newUser._id, email: email });
+      await Company.create({ userId: newUser._id, email: email });
     }
 
     if (role === "applicant") {

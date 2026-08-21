@@ -13,6 +13,10 @@ const applyJob = async (req, res) => {
         const userId = req.user._id;
         const { jobId, coverLetter, resumeBase64, fileName, expectedSalary, noticePeriod } = req.body;
 
+        if (!jobId || !coverLetter || !expectedSalary || !noticePeriod) {
+            return res.status(400).json({ message: "Please provide all required fields." });
+        }
+
         // Check if the user is an applicant
         const applicant = await Applicant.findOne({ userId });
         if (!applicant) {
