@@ -202,6 +202,9 @@ const getJobDetails = async (req, res) => {
             }
         }
 
+        // return only active jobs
+        job = job.filter(job => job.status === 'active');
+
         res.status(200).json({ job, applied });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching job details', error });
