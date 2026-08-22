@@ -1,6 +1,5 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
 const User = require("../models/user.model");
 const { verificationLink } = require("../config/email");
 const Company = require("../models/company.model");
@@ -20,14 +19,6 @@ const generateToken = (userId, res) => {
     sameSite: "none",
   });
 };
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
 
 const registration = async (req, res) => {
   try {
@@ -73,6 +64,7 @@ const registration = async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      emailVerified: true,
     });
 
     if (role === "company") {
@@ -89,18 +81,6 @@ const registration = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-    const verification = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-    
-    console.log("Before email");
-
-    await transporter.sendMail({
-      from: `"Jobstack" <${process.env.SMTP_EMAIL}>`,
-      to: email,
-      subject: "Your Verification Link",
-      html: verificationLink(verification),
-    });
-
-    console.log("After email");
 
     res.status(201).json();
   } catch (err) {

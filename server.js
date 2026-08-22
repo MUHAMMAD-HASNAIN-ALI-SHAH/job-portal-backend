@@ -3,27 +3,6 @@ require("dotenv").config();
 const connectDb = require("./config/db");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const nodemailer = require("nodemailer");
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
-
-transporter.verify((error, success) => {
-  console.log("VERIFY START");
-
-  if (error) {
-    console.log("SMTP ERROR FULL:", error);
-  } else {
-    console.log("SMTP READY");
-  }
-
-  console.log("VERIFY END");
-});
 
 const app = express();
 
