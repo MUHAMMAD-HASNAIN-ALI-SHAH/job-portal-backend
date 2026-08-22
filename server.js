@@ -14,11 +14,15 @@ const transporter = nodemailer.createTransport({
 });
 
 transporter.verify((error, success) => {
+  console.log("VERIFY START");
+
   if (error) {
-    console.log("SMTP Error:", error);
+    console.log("SMTP ERROR FULL:", error);
   } else {
-    console.log("SMTP Ready");
+    console.log("SMTP READY");
   }
+
+  console.log("VERIFY END");
 });
 
 const app = express();
