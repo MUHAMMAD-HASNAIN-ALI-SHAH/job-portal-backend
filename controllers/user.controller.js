@@ -181,7 +181,12 @@ const verify = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    res.cookie("jwt", "", { maxAge: 0 });
+     res.clearCookie("jwt", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+    });
     return res.status(200).json({ message: "Logout successful" });
   } catch (err) {
     console.error("Logout Controller Error: " + err.message);
