@@ -18,6 +18,11 @@ app.use(
   })
 );
 
+// Health check route
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // Routes
 app.use("/api/v1/auth", require("./routes/auth.route"));
 app.use("/api/v2/company", require("./routes/company.route"));
