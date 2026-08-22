@@ -3,6 +3,23 @@ require("dotenv").config();
 const connectDb = require("./config/db");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SMTP_EMAIL,
+    pass: process.env.SMTP_PASSWORD,
+  },
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.log("SMTP Error:", error);
+  } else {
+    console.log("SMTP Ready");
+  }
+});
 
 const app = express();
 
@@ -22,6 +39,9 @@ app.use(
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
+
+console.log(process.env.SMTP_EMAIL);
+console.log(process.env.SMTP_PASSWORD);
 
 // Routes
 app.use("/api/v1/auth", require("./routes/auth.route"));
