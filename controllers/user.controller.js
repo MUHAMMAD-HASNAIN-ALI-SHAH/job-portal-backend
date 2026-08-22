@@ -90,12 +90,17 @@ const registration = async (req, res) => {
       { expiresIn: "1h" }
     );
     const verification = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    
+    console.log("Before email");
+
     await transporter.sendMail({
       from: `"Jobstack" <${process.env.SMTP_EMAIL}>`,
       to: email,
       subject: "Your Verification Link",
       html: verificationLink(verification),
     });
+
+    console.log("After email");
 
     res.status(201).json();
   } catch (err) {
