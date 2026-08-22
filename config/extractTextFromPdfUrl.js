@@ -2,6 +2,7 @@ const { PDFParse } = require("pdf-parse");
 
 const extractTextFromPdfUrl = async (pdfUrl) => {
   const response = await fetch(pdfUrl);
+  console.log("Response status:", response);
 
   if (!response.ok) {
     throw new Error("Failed to fetch PDF");

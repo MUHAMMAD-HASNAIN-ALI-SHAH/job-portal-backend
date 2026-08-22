@@ -61,12 +61,6 @@ const applyJob = async (req, res) => {
             });
 
             await resume.save();
-
-            if (applicant.resumeId === null) {
-                // If the applicant doesn't have a saved resume, save this one as their profile resume
-                applicant.resumeId = resume._id;
-                await applicant.save();
-            }
         } else {
             // If no resume is provided, check if the applicant has a saved resume
             const getResume = await Resume.findById(
@@ -167,6 +161,9 @@ const updateStatus = async (req, res) => {
             }
             if (interviewMode === "in-person" && !interviewLocation) {
                 return res.status(400).json({ message: "Interview location is required for in-person interviews." });
+            }
+            if(new Date(interviewDate) < new Date()) {
+                return res.status(400).json({ message: "Interview date cannot be in the past." });
             }
         }
 
